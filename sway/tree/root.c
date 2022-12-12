@@ -63,6 +63,10 @@ void root_scratchpad_add_container(struct sway_container *con, struct sway_works
 	struct sway_container *parent = con->pending.parent;
 	struct sway_workspace *workspace = con->pending.workspace;
 
+	struct wlr_box transform_box;
+	workspace_get_box(workspace, &transform_box);
+	con->transform = transform_box;
+
 	// Clear the fullscreen mode when sending to the scratchpad
 	if (con->pending.fullscreen_mode != FULLSCREEN_NONE) {
 		container_fullscreen_disable(con);
@@ -141,15 +145,13 @@ void root_scratchpad_show(struct sway_container *con) {
 	}
 	workspace_add_floating(new_ws, con);
 
-	// Make sure the container's center point overlaps this workspace
-	double center_lx = con->pending.x + con->pending.width / 2;
-	double center_ly = con->pending.y + con->pending.height / 2;
-
 	struct wlr_box workspace_box;
 	workspace_get_box(new_ws, &workspace_box);
-	if (!wlr_box_contains_point(&workspace_box, center_lx, center_ly)) {
-		container_floating_resize_and_center(con);
-	}
+
+	floating_fix_coordinates(con, &con->transform, &workspace_box);
+	// Adjust transform since this container might have been moved to
+	// another workspace.
+	con->transform = workspace_box;
 
 	arrange_workspace(new_ws);
 	seat_set_focus(seat, seat_get_focus_inactive(seat, &con->node));
@@ -171,6 +173,10 @@ void root_scratchpad_hide(struct sway_container *con) {
 		// it should be shown until fullscreen has been disabled
 		return;
 	}
+
+	struct wlr_box transform_box;
+	workspace_get_box(con->current.workspace, &transform_box);
+	con->transform = transform_box;
 
 	disable_fullscreen(con, NULL);
 	container_for_each_child(con, disable_fullscreen, NULL);
