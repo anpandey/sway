@@ -285,7 +285,9 @@ void arrange_workspace(struct sway_workspace *workspace) {
 			floating_fix_coordinates(floater, &prev_box, &workspace_box);
 			// Set transformation for scratchpad windows.
 			if (floater->scratchpad) {
-				floater->transform = workspace_box;
+				struct wlr_box output_box;
+				output_get_box(output, &output_box);
+				floater->transform = output_box;
 			}
 		}
 	}

@@ -1042,9 +1042,9 @@ void container_floating_move_to(struct sway_container *con,
 		// If the moved container was a visible scratchpad container, then
 		// update its transform.
 		if (con->scratchpad) {
-			struct wlr_box workspace_box;
-			workspace_get_box(new_workspace, &workspace_box);
-			con->transform = workspace_box;
+			struct wlr_box output_box;
+			output_get_box(new_output, &output_box);
+			con->transform = output_box;
 		}
 		workspace_detect_urgent(old_workspace);
 		workspace_detect_urgent(new_workspace);

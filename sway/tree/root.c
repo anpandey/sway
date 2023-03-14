@@ -55,6 +55,17 @@ void root_destroy(struct sway_root *root) {
 	free(root);
 }
 
+static void set_container_transform(struct sway_workspace *ws,
+			struct sway_container *con) {
+	struct sway_output *output = ws->output;
+	if (!output) {
+		output = root->fallback_output;
+	}
+	struct wlr_box output_box;
+	output_get_box(output, &output_box);
+	con->transform = output_box;
+}
+
 void root_scratchpad_add_container(struct sway_container *con, struct sway_workspace *ws) {
 	if (!sway_assert(!con->scratchpad, "Container is already in scratchpad")) {
 		return;
@@ -63,9 +74,7 @@ void root_scratchpad_add_container(struct sway_container *con, struct sway_works
 	struct sway_container *parent = con->pending.parent;
 	struct sway_workspace *workspace = con->pending.workspace;
 
-	struct wlr_box transform_box;
-	workspace_get_box(workspace, &transform_box);
-	con->transform = transform_box;
+	set_container_transform(workspace, con);
 
 	// Clear the fullscreen mode when sending to the scratchpad
 	if (con->pending.fullscreen_mode != FULLSCREEN_NONE) {
@@ -145,13 +154,12 @@ void root_scratchpad_show(struct sway_container *con) {
 	}
 	workspace_add_floating(new_ws, con);
 
-	struct wlr_box workspace_box;
-	workspace_get_box(new_ws, &workspace_box);
-
-	floating_fix_coordinates(con, &con->transform, &workspace_box);
-	// Adjust transform since this container might have been moved to
-	// another workspace.
-	con->transform = workspace_box;
+	if (new_ws->output) {
+		struct wlr_box output_box;
+		output_get_box(new_ws->output, &output_box);
+		floating_fix_coordinates(con, &con->transform, &output_box);
+	}
+	set_container_transform(new_ws, con);
 
 	arrange_workspace(new_ws);
 	seat_set_focus(seat, seat_get_focus_inactive(seat, &con->node));
@@ -174,9 +182,7 @@ void root_scratchpad_hide(struct sway_container *con) {
 		return;
 	}
 
-	struct wlr_box transform_box;
-	workspace_get_box(con->current.workspace, &transform_box);
-	con->transform = transform_box;
+	set_container_transform(con->pending.workspace, con);
 
 	disable_fullscreen(con, NULL);
 	container_for_each_child(con, disable_fullscreen, NULL);

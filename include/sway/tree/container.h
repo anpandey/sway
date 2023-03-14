@@ -113,7 +113,7 @@ struct sway_container {
 	// Hidden scratchpad containers have a NULL parent.
 	bool scratchpad;
 
-	// Stores last workspace size and position for adjusting coordinates of
+	// Stores last output size and position for adjusting coordinates of
 	// scratchpad windows.
 	// Unused for non-scratchpad windows.
 	struct wlr_box transform;
